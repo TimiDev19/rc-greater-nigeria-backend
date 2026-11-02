@@ -128,9 +128,17 @@ exports.reject = asyncHandler(async (req, res) => {
 exports.downloadCard = asyncHandler(async (req, res) => {
   const row = await findRequest(req.params.id);
   if (row.status !== 'approved' || !row.card_path) throw new ApiError(404, 'Approved card not found');
-  const { data, error } = await supabaseAdmin.storage.from(BUCKET).download(row.card_path);
-  if (error || !data) throw new ApiError(500, 'Could not retrieve generated card');
-  const buffer = Buffer.from(await data.arrayBuffer());
+  // Re-render on download so cards approved before a layout/font fix are refreshed too.
+  const buffer = await makeupCard.generateMakeupCard({
+    visitorName: row.visitor_name,
+    hostClub: row.host_club,
+    requestDate: row.request_date,
+    presidentName: row.president_name,
+  });
+  const { error } = await supabaseAdmin.storage.from(BUCKET).upload(row.card_path, buffer, {
+    contentType: 'application/pdf', cacheControl: 'private, max-age=0', upsert: true,
+  });
+  if (error) throw new ApiError(500, 'Could not refresh generated card');
   const safeName = row.visitor_name.normalize('NFKD').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'visitor';
   res.set({
     'Content-Type': 'application/pdf',
