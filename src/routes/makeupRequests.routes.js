@@ -16,6 +16,7 @@ router.get('/', requireAuth, requireAdmin, controller.list);
 router.get('/:id', requireAuth, requireAdmin, controller.getOne);
 router.post('/:id/approve', requireAuth, requireAdmin, controller.approve);
 router.post('/:id/reject', requireAuth, requireAdmin, controller.reject);
+router.put('/:id/officers', requireAuth, requireAdmin, controller.updateOfficers);
 router.get('/:id/card', requireAuth, requireAdmin, controller.downloadCard);
 
 module.exports = router;

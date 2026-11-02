@@ -34,12 +34,13 @@ const shape = (row) => ({
   request_date_display: displayDate(row.request_date),
   status: row.status,
   president_name: row.president_name,
+  secretary_name: row.secretary_name,
   rejection_note: row.rejection_note,
   reviewed_at: row.reviewed_at,
   reviewed_by: row.reviewed_by,
   created_at: row.created_at,
   updated_at: row.updated_at,
-  card_available: row.card_path !== null,
+  card_available: row.card_path !== null && row.secretary_name !== null,
 });
 
 exports.create = asyncHandler(async (req, res) => {
@@ -79,15 +80,18 @@ exports.approve = asyncHandler(async (req, res) => {
   const existing = await findRequest(req.params.id);
   if (existing.status !== 'pending') throw new ApiError(409, `Request is already ${existing.status}`);
   let presidentName;
-  try { presidentName = text({ max: 160 })(req.body?.president_name); } catch (e) {
-    throw new ApiError(400, 'Validation failed', { president_name: e.message });
-  }
+  let secretaryName;
+  const errors = {};
+  try { presidentName = text({ max: 160 })(req.body?.president_name); } catch (e) { errors.president_name = e.message; }
+  try { secretaryName = text({ max: 160 })(req.body?.secretary_name); } catch (e) { errors.secretary_name = e.message; }
+  if (Object.keys(errors).length) throw new ApiError(400, 'Validation failed', errors);
 
   const pdf = await makeupCard.generateMakeupCard({
     visitorName: existing.visitor_name,
     hostClub: existing.host_club,
     requestDate: existing.request_date,
     presidentName,
+    secretaryName,
   });
   const cardPath = `${existing.id}/${Date.now()}.pdf`;
   const { error: uploadError } = await supabaseAdmin.storage.from(BUCKET).upload(cardPath, pdf, {
@@ -96,7 +100,7 @@ exports.approve = asyncHandler(async (req, res) => {
   if (uploadError) throw new ApiError(500, `Could not save generated card: ${uploadError.message}`);
 
   const { data, error } = await supabaseAdmin.from(TABLE).update({
-    status: 'approved', president_name: presidentName, card_path: cardPath,
+    status: 'approved', president_name: presidentName, secretary_name: secretaryName, card_path: cardPath,
     reviewed_at: new Date().toISOString(), reviewed_by: req.user.id, rejection_note: null,
   }).eq('id', existing.id).eq('status', 'pending').select('*').maybeSingle();
   if (error || !data) {
@@ -104,6 +108,36 @@ exports.approve = asyncHandler(async (req, res) => {
     if (error) throw dbError(error);
     throw new ApiError(409, 'Request status changed while it was being reviewed');
   }
+  res.json({ success: true, data: shape(data) });
+});
+
+// Upgrade cards approved before secretary_name became part of the approval flow.
+exports.updateOfficers = asyncHandler(async (req, res) => {
+  const existing = await findRequest(req.params.id);
+  if (existing.status !== 'approved' || !existing.card_path) throw new ApiError(409, 'Only approved requests can have their card regenerated');
+  let presidentName = existing.president_name;
+  let secretaryName;
+  const errors = {};
+  if (req.body?.president_name !== undefined) {
+    try { presidentName = text({ max: 160 })(req.body.president_name); } catch (e) { errors.president_name = e.message; }
+  }
+  try { secretaryName = text({ max: 160 })(req.body?.secretary_name); } catch (e) { errors.secretary_name = e.message; }
+  if (Object.keys(errors).length) throw new ApiError(400, 'Validation failed', errors);
+
+  const pdf = await makeupCard.generateMakeupCard({
+    visitorName: existing.visitor_name,
+    hostClub: existing.host_club,
+    requestDate: existing.request_date,
+    presidentName,
+    secretaryName,
+  });
+  const { error: uploadError } = await supabaseAdmin.storage.from(BUCKET).upload(existing.card_path, pdf, {
+    contentType: 'application/pdf', cacheControl: 'private, max-age=0', upsert: true,
+  });
+  if (uploadError) throw new ApiError(500, 'Could not refresh generated card');
+  const { data, error } = await supabaseAdmin.from(TABLE).update({ president_name: presidentName, secretary_name: secretaryName })
+    .eq('id', existing.id).eq('status', 'approved').select('*').single();
+  if (error) throw dbError(error);
   res.json({ success: true, data: shape(data) });
 });
 
@@ -128,12 +162,14 @@ exports.reject = asyncHandler(async (req, res) => {
 exports.downloadCard = asyncHandler(async (req, res) => {
   const row = await findRequest(req.params.id);
   if (row.status !== 'approved' || !row.card_path) throw new ApiError(404, 'Approved card not found');
+  if (!row.secretary_name) throw new ApiError(409, 'Secretary name is missing. Save the officer names to regenerate this card first.');
   // Re-render on download so cards approved before a layout/font fix are refreshed too.
   const buffer = await makeupCard.generateMakeupCard({
     visitorName: row.visitor_name,
     hostClub: row.host_club,
     requestDate: row.request_date,
     presidentName: row.president_name,
+    secretaryName: row.secretary_name,
   });
   const { error } = await supabaseAdmin.storage.from(BUCKET).upload(row.card_path, buffer, {
     contentType: 'application/pdf', cacheControl: 'private, max-age=0', upsert: true,

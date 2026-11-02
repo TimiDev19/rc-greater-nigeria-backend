@@ -373,13 +373,16 @@ const makeupRequestPaths = () => {
       get: { tags: ['Make-Up Cards'], summary: 'Get make-up request details (admin)', security: admin, parameters: [idParam], responses: { 200: ok('Request', envelope(requestRef)), 404: err('Not found'), ...authErrors } },
     },
     '/api/makeup-requests/{id}/approve': {
-      post: { tags: ['Make-Up Cards'], summary: 'Approve request and generate PDF (admin)', security: admin, parameters: [idParam], requestBody: { required: true, content: json({ type: 'object', required: ['president_name'], properties: { president_name: { type: 'string', maxLength: 160 } } }) }, responses: { 200: ok('Approved; PDF is ready to download', envelope(requestRef)), 400: err('Validation failed'), 404: err('Not found'), 409: err('Request already reviewed'), ...authErrors } },
+      post: { tags: ['Make-Up Cards'], summary: 'Approve request and generate PDF (admin)', security: admin, parameters: [idParam], requestBody: { required: true, content: json({ type: 'object', required: ['president_name', 'secretary_name'], properties: { president_name: { type: 'string', maxLength: 160 }, secretary_name: { type: 'string', maxLength: 160 } } }) }, responses: { 200: ok('Approved; PDF is ready to download', envelope(requestRef)), 400: err('Validation failed'), 404: err('Not found'), 409: err('Request already reviewed'), ...authErrors } },
     },
     '/api/makeup-requests/{id}/reject': {
       post: { tags: ['Make-Up Cards'], summary: 'Reject a pending request (admin)', security: admin, parameters: [idParam], requestBody: { content: json({ type: 'object', properties: { rejection_note: { type: 'string', maxLength: 1000 } } }) }, responses: { 200: ok('Rejected', envelope(requestRef)), 404: err('Not found'), 409: err('Request already reviewed'), ...authErrors } },
     },
     '/api/makeup-requests/{id}/card': {
       get: { tags: ['Make-Up Cards'], summary: 'Download approved PDF (admin)', security: admin, parameters: [idParam], responses: { 200: { description: 'Generated make-up card PDF', content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } } }, 404: err('Approved card not found'), ...authErrors } },
+    },
+    '/api/makeup-requests/{id}/officers': {
+      put: { tags: ['Make-Up Cards'], summary: 'Update officer names and regenerate an approved card (admin)', description: 'Also supports older approved requests that do not have a secretary name yet.', security: admin, parameters: [idParam], requestBody: { required: true, content: json({ type: 'object', required: ['secretary_name'], properties: { president_name: { type: 'string', maxLength: 160 }, secretary_name: { type: 'string', maxLength: 160 } } }) }, responses: { 200: ok('Officer names saved; PDF regenerated', envelope(requestRef)), 400: err('Validation failed'), 404: err('Not found'), 409: err('Request is not approved'), ...authErrors } },
     },
   };
 };
@@ -397,7 +400,7 @@ const buildDocs = (resources) => {
   schemas.MakeupRequest = { type: 'object', properties: {
     id: { type: 'string', format: 'uuid' }, visitor_name: { type: 'string' }, host_club: { type: 'string' },
     request_date: { type: 'string', format: 'date', example: '2026-11-02' }, request_date_display: { type: 'string', example: '02/11/2026', description: 'Formatted as DD/MM/YYYY for the card' },
-    status: { type: 'string', enum: ['pending', 'approved', 'rejected'] }, president_name: { type: 'string', nullable: true },
+    status: { type: 'string', enum: ['pending', 'approved', 'rejected'] }, president_name: { type: 'string', nullable: true }, secretary_name: { type: 'string', nullable: true },
     rejection_note: { type: 'string', nullable: true }, card_available: { type: 'boolean' }, reviewed_at: { type: 'string', format: 'date-time', nullable: true },
     reviewed_by: { type: 'string', format: 'uuid', nullable: true }, created_at: { type: 'string', format: 'date-time' }, updated_at: { type: 'string', format: 'date-time' },
   } };

@@ -127,6 +127,7 @@ create table if not exists public.makeup_requests (
   request_date date not null default (timezone('Africa/Lagos', now())::date),
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   president_name text,
+  secretary_name text,
   rejection_note text,
   card_path text,
   reviewed_at timestamptz,
@@ -139,6 +140,7 @@ create table if not exists public.makeup_requests (
     or (status = 'rejected' and reviewed_at is not null and reviewed_by is not null and card_path is null)
   )
 );
+alter table public.makeup_requests add column if not exists secretary_name text;
 create index if not exists makeup_requests_status_created_idx on public.makeup_requests (status, created_at desc);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

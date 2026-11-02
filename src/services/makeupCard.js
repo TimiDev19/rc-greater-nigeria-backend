@@ -52,7 +52,7 @@ const drawField = (page, fonts, value, { x, y, width, align = 'left', fontSize =
   }
 };
 
-exports.generateMakeupCard = async ({ visitorName, hostClub, requestDate, presidentName }) => {
+exports.generateMakeupCard = async ({ visitorName, hostClub, requestDate, presidentName, secretaryName }) => {
   const document = await PDFDocument.load(template);
   document.registerFontkit(fontkit);
   const fonts = {
@@ -66,7 +66,8 @@ exports.generateMakeupCard = async ({ visitorName, hostClub, requestDate, presid
   drawField(page, fonts, visitorName, { x: 67, y: 518, width: 470 });
   drawField(page, fonts, hostClub, { x: 67, y: 482, width: 470, maskBottom: 8 });
   drawField(page, fonts, displayDate, { x: 67, y: 442, width: 470, maskBottom: 8 });
-  drawField(page, fonts, presidentName, { x: 170, y: 407, width: 272, align: 'center', fontSize: 12, maskBottom: 8 });
+  drawField(page, fonts, presidentName, { x: 64, y: 407, width: 224, align: 'center', fontSize: 12, maskBottom: 8 });
+  drawField(page, fonts, secretaryName, { x: 324, y: 407, width: 224, align: 'center', fontSize: 12, maskBottom: 8 });
 
   return Buffer.from(await document.save());
 };

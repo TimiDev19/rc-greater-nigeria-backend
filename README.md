@@ -166,15 +166,16 @@ All endpoints require an authenticated member or admin. Members can create artic
 | POST | `/api/clubhouse/articles/:id/reactions` | Member or admin | `{ type }` (like, love, celebrate, clap, wow; toggles) |
 
 ### Visiting Rotarian make-up card requests
-The public form collects only the visitor name and host club. The API assigns the request date in the `Africa/Lagos` timezone, and the generated card prints it as `DD/MM/YYYY`. No visitor email is collected. Admins review requests and provide the Club President's name when approving; the approved PDF is stored in a private bucket and can be downloaded only through the admin API.
+The public form collects only the visitor name and host club. The API assigns the request date in the `Africa/Lagos` timezone, and the generated card prints it as `DD/MM/YYYY`. No visitor email is collected. Admins review requests and provide both the Club President's and Club Secretary's names when approving; the names appear on one line at opposite sides of the card. The approved PDF is stored in a private bucket and can be downloaded only through the admin API.
 
 | Method | Path | Access | Body / query |
 |---|---|---|---|
 | POST | `/api/makeup-requests` | Public (5 submissions per 15 minutes per IP) | `{ visitor_name, host_club }` |
 | GET | `/api/makeup-requests` | Admin | `?page &limit &status=pending\|approved\|rejected` |
 | GET | `/api/makeup-requests/:id` | Admin | |
-| POST | `/api/makeup-requests/:id/approve` | Admin | `{ president_name }` (generates card) |
+| POST | `/api/makeup-requests/:id/approve` | Admin | `{ president_name, secretary_name }` (generates card) |
 | POST | `/api/makeup-requests/:id/reject` | Admin | `{ rejection_note? }` |
+| PUT | `/api/makeup-requests/:id/officers` | Admin | `{ secretary_name, president_name? }` (updates names and regenerates an approved card; supports older approvals) |
 | GET | `/api/makeup-requests/:id/card` | Admin | Downloads the approved PDF |
 
 ### Projects: picture, title, date, description (+ comments & reactions)
