@@ -17,8 +17,8 @@ const authLimiter = rateLimit({
  * /api/auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: Admin login
- *     description: Returns a JWT access token and refresh token. Limited to 10 attempts per 15 minutes per IP.
+ *     summary: Administrator login
+ *     description: Returns a JWT access token and refresh token for admins. Members can use POST /api/clubhouse/auth/login. Limited to 10 attempts per 15 minutes per IP.
  *     requestBody:
  *       required: true
  *       content:
@@ -55,7 +55,7 @@ const authLimiter = rateLimit({
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
  *       403:
- *         description: Account is not an admin
+ *         description: Account does not have an admin or member role
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }

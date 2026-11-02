@@ -10,8 +10,9 @@ REST API built with **Node.js, Express and Supabase**, documented with **Swagger
 
 **Who can do what**
 
-- **Everyone (public site):** read projects, bulletins, club officers and past presidents; read and post comments; react.
-- **Admin only (admin panel):** create, update and delete projects, bulletins, club officers, past presidents; delete comments.
+- **Visitors:** read public club content and submit a make-up card request without creating an account.
+- **Members:** use the clubhouse to read and manage their own articles, comment and react.
+- **Admins:** manage public content, members, clubhouse content, comments, and make-up requests.
 
 ---
 
@@ -42,9 +43,9 @@ cp .env.example .env        # then fill in the values (see 1.4)
 1. Open your Supabase project, then **SQL Editor > New query**.
 2. Paste the whole of [`supabase/schema.sql`](supabase/schema.sql) and click **Run**.
 
-This creates the tables (`projects`, `bulletins`, `club_officers`, `past_presidents`, `comments`, `reactions`, and clubhouse articles/comments/reactions),
+This creates the tables (`projects`, `bulletins`, `club_officers`, `past_presidents`, `comments`, `reactions`, clubhouse articles/comments/reactions, and make-up card requests),
 turns on Row Level Security (so the public anon key cannot touch the data directly, only this API can),
-and creates a public storage bucket called `media` for pictures and PDFs.
+and creates a public storage bucket called `media` for pictures and PDFs plus a private `makeup-cards` bucket for approved make-up card PDFs.
 It's safe to run again.
 
 ### 1.3 Create the admin account and start
@@ -163,6 +164,18 @@ All endpoints require an authenticated member or admin. Members can create artic
 | DELETE | `/api/clubhouse/articles/:id/comments/:commentId` | Author or admin | |
 | GET | `/api/clubhouse/articles/:id/reactions` | Member or admin | |
 | POST | `/api/clubhouse/articles/:id/reactions` | Member or admin | `{ type }` (like, love, celebrate, clap, wow; toggles) |
+
+### Visiting Rotarian make-up card requests
+The public form collects only the visitor name and host club. The API assigns the request date in the `Africa/Lagos` timezone, and the generated card prints it as `DD/MM/YYYY`. No visitor email is collected. Admins review requests and provide the Club President's name when approving; the approved PDF is stored in a private bucket and can be downloaded only through the admin API.
+
+| Method | Path | Access | Body / query |
+|---|---|---|---|
+| POST | `/api/makeup-requests` | Public (5 submissions per 15 minutes per IP) | `{ visitor_name, host_club }` |
+| GET | `/api/makeup-requests` | Admin | `?page &limit &status=pending\|approved\|rejected` |
+| GET | `/api/makeup-requests/:id` | Admin | |
+| POST | `/api/makeup-requests/:id/approve` | Admin | `{ president_name }` (generates card) |
+| POST | `/api/makeup-requests/:id/reject` | Admin | `{ rejection_note? }` |
+| GET | `/api/makeup-requests/:id/card` | Admin | Downloads the approved PDF |
 
 ### Projects: picture, title, date, description (+ comments & reactions)
 | Method | Path | Access | Fields |

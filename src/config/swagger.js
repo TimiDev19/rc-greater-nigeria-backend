@@ -7,10 +7,10 @@ const { buildDocs } = require('../docs/buildDocs');
 const description = `
 REST API for the E-Club of Greater Nigeria website and admin panel.
 
-**Reading data (projects, bulletins, officers, past presidents, comments, reactions) is public.**
-**Creating, updating and deleting is admin-only.**
+**Public visitors can read club content and submit visiting Rotarian make-up card requests.**
+**Members use the clubhouse for authenticated articles, comments, reactions, and profiles. Admin-only routes manage member accounts, public content, request review, and card downloads.**
 
-To try admin endpoints: call \`POST /api/auth/login\`, copy the \`access_token\`, click **Authorize** (top right) and paste it.
+To try member endpoints, use \`POST /api/clubhouse/auth/login\`. To try admin endpoints, use \`POST /api/auth/login\`. Copy the \`access_token\`, click **Authorize** (top right) and paste it.
 
 Responses use a common envelope: \`{ "success": true, "data": ... }\` or \`{ "success": false, "message": "...", "errors": { field: "..." } }\`.
 `;
@@ -21,7 +21,7 @@ const spec = swaggerJsdoc({
     info: { title: 'E-Club of Greater Nigeria API', version: '2.0.0', description },
     servers: [{ url: env.baseUrl }],
     tags: [
-      { name: 'Auth', description: 'Admin authentication' },
+      { name: 'Auth', description: 'Administrator authentication and session management' },
       ...resources.map((r) => ({
         name: r.tag,
         description: r.targetType
@@ -29,6 +29,8 @@ const spec = swaggerJsdoc({
           : `Public read, admin write.`,
       })),
       { name: 'Comments (Admin)', description: 'Moderate comments across projects and bulletins' },
+      { name: 'Clubhouse', description: 'Member profiles, articles, comments, reactions, and admin-managed member accounts' },
+      { name: 'Make-Up Cards', description: 'Public requests and admin review and PDF generation for visiting Rotarians' },
       { name: 'System', description: 'Health and status' },
     ],
     components: {

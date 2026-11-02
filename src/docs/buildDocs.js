@@ -357,6 +357,33 @@ const clubhousePaths = () => {
   return paths;
 };
 
+const makeupRequestPaths = () => {
+  const admin = bearer;
+  const requestRef = ref('MakeupRequest');
+  const publicInput = { type: 'object', required: ['visitor_name', 'host_club'], properties: {
+    visitor_name: { type: 'string', minLength: 1, maxLength: 160, example: 'Amina Okafor' },
+    host_club: { type: 'string', minLength: 1, maxLength: 160, example: 'Rotary Club of Lagos Mainland' },
+  } };
+  return {
+    '/api/makeup-requests': {
+      post: { tags: ['Make-Up Cards'], summary: 'Submit a public make-up card request', description: 'The API sets request_date to the current date in Africa/Lagos. Visitors do not submit the date, president name, or email address.', requestBody: { required: true, content: json(publicInput) }, responses: { 201: ok('Pending request submitted', envelope(requestRef)), 400: err('Validation failed'), 429: err('Submission rate limit reached') } },
+      get: { tags: ['Make-Up Cards'], summary: 'List make-up requests (admin)', security: admin, parameters: [...pageParams(20), { name: 'status', in: 'query', schema: { type: 'string', enum: ['pending', 'approved', 'rejected'] } }], responses: { 200: ok('Requests', envelope({ type: 'array', items: requestRef }, { meta: ref('Pagination') })), 400: err('Invalid status filter'), ...authErrors } },
+    },
+    '/api/makeup-requests/{id}': {
+      get: { tags: ['Make-Up Cards'], summary: 'Get make-up request details (admin)', security: admin, parameters: [idParam], responses: { 200: ok('Request', envelope(requestRef)), 404: err('Not found'), ...authErrors } },
+    },
+    '/api/makeup-requests/{id}/approve': {
+      post: { tags: ['Make-Up Cards'], summary: 'Approve request and generate PDF (admin)', security: admin, parameters: [idParam], requestBody: { required: true, content: json({ type: 'object', required: ['president_name'], properties: { president_name: { type: 'string', maxLength: 160 } } }) }, responses: { 200: ok('Approved; PDF is ready to download', envelope(requestRef)), 400: err('Validation failed'), 404: err('Not found'), 409: err('Request already reviewed'), ...authErrors } },
+    },
+    '/api/makeup-requests/{id}/reject': {
+      post: { tags: ['Make-Up Cards'], summary: 'Reject a pending request (admin)', security: admin, parameters: [idParam], requestBody: { content: json({ type: 'object', properties: { rejection_note: { type: 'string', maxLength: 1000 } } }) }, responses: { 200: ok('Rejected', envelope(requestRef)), 404: err('Not found'), 409: err('Request already reviewed'), ...authErrors } },
+    },
+    '/api/makeup-requests/{id}/card': {
+      get: { tags: ['Make-Up Cards'], summary: 'Download approved PDF (admin)', security: admin, parameters: [idParam], responses: { 200: { description: 'Generated make-up card PDF', content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } } }, 404: err('Approved card not found'), ...authErrors } },
+    },
+  };
+};
+
 const buildDocs = (resources) => {
   const paths = {};
   const schemas = sharedSchemas();
@@ -367,6 +394,13 @@ const buildDocs = (resources) => {
   schemas.ClubhouseComment = { type: 'object', properties: {
     id: { type: 'string', format: 'uuid' }, article_id: { type: 'string', format: 'uuid' }, author_id: { type: 'string', format: 'uuid' }, body: { type: 'string' }, created_at: { type: 'string', format: 'date-time' },
   } };
+  schemas.MakeupRequest = { type: 'object', properties: {
+    id: { type: 'string', format: 'uuid' }, visitor_name: { type: 'string' }, host_club: { type: 'string' },
+    request_date: { type: 'string', format: 'date', example: '2026-11-02' }, request_date_display: { type: 'string', example: '02/11/2026', description: 'Formatted as DD/MM/YYYY for the card' },
+    status: { type: 'string', enum: ['pending', 'approved', 'rejected'] }, president_name: { type: 'string', nullable: true },
+    rejection_note: { type: 'string', nullable: true }, card_available: { type: 'boolean' }, reviewed_at: { type: 'string', format: 'date-time', nullable: true },
+    reviewed_by: { type: 'string', format: 'uuid', nullable: true }, created_at: { type: 'string', format: 'date-time' }, updated_at: { type: 'string', format: 'date-time' },
+  } };
 
   resources.forEach((cfg) => {
     schemas[cfg.schemaName] = entitySchema(cfg);
@@ -375,6 +409,7 @@ const buildDocs = (resources) => {
   });
   Object.assign(paths, commentModerationPaths());
   Object.assign(paths, clubhousePaths());
+  Object.assign(paths, makeupRequestPaths());
 
   return { paths, schemas };
 };

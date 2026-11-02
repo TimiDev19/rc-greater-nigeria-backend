@@ -119,6 +119,33 @@ create table if not exists public.clubhouse_reactions (
 );
 create index if not exists clubhouse_reactions_article_idx on public.clubhouse_reactions (article_id);
 
+-- --------------------------------------- visiting Rotarian make-up requests
+create table if not exists public.makeup_requests (
+  id uuid primary key default gen_random_uuid(),
+  visitor_name text not null,
+  host_club text not null,
+  request_date date not null default (timezone('Africa/Lagos', now())::date),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  president_name text,
+  rejection_note text,
+  card_path text,
+  reviewed_at timestamptz,
+  reviewed_by uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint makeup_request_review_fields check (
+    (status = 'pending' and reviewed_at is null and reviewed_by is null and president_name is null and card_path is null)
+    or (status = 'approved' and reviewed_at is not null and reviewed_by is not null and president_name is not null and card_path is not null)
+    or (status = 'rejected' and reviewed_at is not null and reviewed_by is not null and card_path is null)
+  )
+);
+create index if not exists makeup_requests_status_created_idx on public.makeup_requests (status, created_at desc);
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('makeup-cards', 'makeup-cards', false, 2097152, array['application/pdf'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
 -- ------------------------------------------------------------ count views
 create or replace view public.comment_counts with (security_invoker = true) as
   select target_type, target_id, count(*)::int as total
@@ -134,7 +161,7 @@ create or replace view public.reaction_counts with (security_invoker = true) as
 do $$
 declare t text;
 begin
-  foreach t in array array['projects', 'bulletins', 'club_officers', 'past_presidents', 'clubhouse_articles']
+  foreach t in array array['projects', 'bulletins', 'club_officers', 'past_presidents', 'clubhouse_articles', 'makeup_requests']
   loop
     execute format('drop trigger if exists set_updated_at on public.%I', t);
     execute format(
@@ -155,6 +182,7 @@ alter table public.reactions       enable row level security;
 alter table public.clubhouse_articles enable row level security;
 alter table public.clubhouse_comments enable row level security;
 alter table public.clubhouse_reactions enable row level security;
+alter table public.makeup_requests enable row level security;
 
 -- This API performs database requests through its server-only service_role key.
 -- Explicit grants are needed on projects where new tables do not inherit Data API privileges.
