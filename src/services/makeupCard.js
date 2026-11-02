@@ -4,6 +4,7 @@ const { PDFDocument, rgb } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 
 const template = fs.readFileSync(path.join(__dirname, '../assets/rotary-makeup-card-template.pdf'));
+const clubLogo = fs.readFileSync(path.join(__dirname, '../assets/rotary-eclub-greater-nigeria-logo.png'));
 const latinBytes = fs.readFileSync(path.join(__dirname, '../assets/noto-sans-latin.ttf'));
 const extendedBytes = fs.readFileSync(path.join(__dirname, '../assets/noto-sans-latin-ext.ttf'));
 const latinMap = fontkit.create(latinBytes);
@@ -60,6 +61,7 @@ exports.generateMakeupCard = async ({ visitorName, hostClub, requestDate, presid
     extended: await document.embedFont(extendedBytes),
   };
   const page = document.getPages()[0];
+  const logo = await document.embedPng(clubLogo);
   const [year, month, day] = requestDate.split('-');
   const displayDate = `${day}/${month}/${year}`;
 
@@ -68,6 +70,8 @@ exports.generateMakeupCard = async ({ visitorName, hostClub, requestDate, presid
   drawField(page, fonts, displayDate, { x: 67, y: 442, width: 470, maskBottom: 8 });
   drawField(page, fonts, presidentName, { x: 64, y: 407, width: 224, align: 'center', fontSize: 12, maskBottom: 8 });
   drawField(page, fonts, secretaryName, { x: 324, y: 407, width: 224, align: 'center', fontSize: 12, maskBottom: 8 });
+  // Keep the club mark centered in the gap between officer names.
+  page.drawImage(logo, { x: 291, y: 398, width: 30, height: 30 });
 
   return Buffer.from(await document.save());
 };
