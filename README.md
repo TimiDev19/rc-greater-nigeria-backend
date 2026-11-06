@@ -43,7 +43,7 @@ cp .env.example .env        # then fill in the values (see 1.4)
 1. Open your Supabase project, then **SQL Editor > New query**.
 2. Paste the whole of [`supabase/schema.sql`](supabase/schema.sql) and click **Run**.
 
-This creates the tables (`projects`, `bulletins`, `club_officers`, `past_presidents`, `comments`, `reactions`, clubhouse articles/comments/reactions, and make-up card requests),
+This creates the tables (`projects`, `bulletins`, `club_officers`, `past_presidents`, `president_messages`, `comments`, `reactions`, clubhouse articles/comments/reactions, and make-up card requests),
 turns on Row Level Security (so the public anon key cannot touch the data directly, only this API can),
 and creates a public storage bucket called `media` for pictures and PDFs plus a private `makeup-cards` bucket for approved make-up card PDFs.
 It's safe to run again.
@@ -221,6 +221,17 @@ Sorted by `display_order`, then creation order. Give the President `1`, Vice Pre
 | DELETE | `/api/past-presidents/:id` | Admin | |
 
 Sorted most recent `year_served` first.
+
+### President's message: portrait, president name, presidential year, and message
+| Method | Path | Access | Fields |
+|---|---|---|---|
+| GET | `/api/president-messages` | Public | `?page &limit &search` |
+| GET | `/api/president-messages/:id` | Public | |
+| POST | `/api/president-messages` | Admin | form-data: `president_name`*, `year_served`* (e.g. `2026/27`), `message`*, `image`* |
+| PUT | `/api/president-messages/:id` | Admin | any of the fields above; upload `image` to replace the portrait |
+| DELETE | `/api/president-messages/:id` | Admin | |
+
+Sorted newest presidential year first. The `image_url` response field is ready to use in an `<img>`; render `president_name` in bold in the website UI.
 
 ### Comments and reactions (projects and bulletins)
 Replace `projects` with `bulletins` for bulletins; the behaviour is identical.

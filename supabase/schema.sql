@@ -62,6 +62,20 @@ create table if not exists public.past_presidents (
   updated_at  timestamptz not null default now()
 );
 
+-- -------------------------------------------------------- president message
+create table if not exists public.president_messages (
+  id            uuid primary key default gen_random_uuid(),
+  president_name text not null,
+  year_served   text not null,
+  message       text not null,
+  image_url     text not null,
+  image_path    text not null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+create index if not exists president_messages_year_idx
+  on public.president_messages (year_served desc, created_at desc);
+
 -- ---------------------------------------- comments (projects and bulletins)
 create table if not exists public.comments (
   id          uuid primary key default gen_random_uuid(),
@@ -163,7 +177,7 @@ create or replace view public.reaction_counts with (security_invoker = true) as
 do $$
 declare t text;
 begin
-  foreach t in array array['projects', 'bulletins', 'club_officers', 'past_presidents', 'clubhouse_articles', 'makeup_requests']
+  foreach t in array array['projects', 'bulletins', 'club_officers', 'past_presidents', 'president_messages', 'clubhouse_articles', 'makeup_requests']
   loop
     execute format('drop trigger if exists set_updated_at on public.%I', t);
     execute format(
@@ -179,6 +193,7 @@ alter table public.projects        enable row level security;
 alter table public.bulletins       enable row level security;
 alter table public.club_officers   enable row level security;
 alter table public.past_presidents enable row level security;
+alter table public.president_messages enable row level security;
 alter table public.comments        enable row level security;
 alter table public.reactions       enable row level security;
 alter table public.clubhouse_articles enable row level security;

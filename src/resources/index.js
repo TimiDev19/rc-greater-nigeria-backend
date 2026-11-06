@@ -5,4 +5,5 @@ module.exports = [
   require('./bulletins'),
   require('./clubOfficers'),
   require('./pastPresidents'),
+  require('./presidentMessages'),
 ];

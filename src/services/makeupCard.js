@@ -4,7 +4,7 @@ const { PDFDocument, rgb } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 
 const template = fs.readFileSync(path.join(__dirname, '../assets/rotary-makeup-card-template.pdf'));
-const clubLogo = fs.readFileSync(path.join(__dirname, '../assets/rotary-eclub-greater-nigeria-logo.png'));
+const clubLogo = fs.readFileSync(path.join(__dirname, '../assets/rotary-eclub-greater-nigeria-emblem.jpg'));
 const latinBytes = fs.readFileSync(path.join(__dirname, '../assets/noto-sans-latin.ttf'));
 const extendedBytes = fs.readFileSync(path.join(__dirname, '../assets/noto-sans-latin-ext.ttf'));
 const latinMap = fontkit.create(latinBytes);
@@ -61,7 +61,7 @@ exports.generateMakeupCard = async ({ visitorName, hostClub, requestDate, presid
     extended: await document.embedFont(extendedBytes),
   };
   const page = document.getPages()[0];
-  const logo = await document.embedPng(clubLogo);
+  const logo = await document.embedJpg(clubLogo);
   const [year, month, day] = requestDate.split('-');
   const displayDate = `${day}/${month}/${year}`;
 
