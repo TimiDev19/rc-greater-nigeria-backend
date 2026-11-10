@@ -76,6 +76,21 @@ create table if not exists public.president_messages (
 create index if not exists president_messages_year_idx
   on public.president_messages (year_served desc, created_at desc);
 
+-- ----------------------------------------------------------- dues receipts
+create table if not exists public.dues_receipts (
+  id uuid primary key default gen_random_uuid(),
+  receipt_date date not null,
+  rotarian_name text not null,
+  amount_paid text not null,
+  rotary_year text not null check (rotary_year ~ '^[0-9]{4}/[0-9]{2}$'),
+  president_name text not null,
+  secretary_name text not null,
+  created_by uuid not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists dues_receipts_created_idx on public.dues_receipts (created_at desc);
+
 -- ---------------------------------------- comments (projects and bulletins)
 create table if not exists public.comments (
   id          uuid primary key default gen_random_uuid(),
@@ -177,7 +192,7 @@ create or replace view public.reaction_counts with (security_invoker = true) as
 do $$
 declare t text;
 begin
-  foreach t in array array['projects', 'bulletins', 'club_officers', 'past_presidents', 'president_messages', 'clubhouse_articles', 'makeup_requests']
+  foreach t in array array['projects', 'bulletins', 'club_officers', 'past_presidents', 'president_messages', 'dues_receipts', 'clubhouse_articles', 'makeup_requests']
   loop
     execute format('drop trigger if exists set_updated_at on public.%I', t);
     execute format(
@@ -194,6 +209,7 @@ alter table public.bulletins       enable row level security;
 alter table public.club_officers   enable row level security;
 alter table public.past_presidents enable row level security;
 alter table public.president_messages enable row level security;
+alter table public.dues_receipts enable row level security;
 alter table public.comments        enable row level security;
 alter table public.reactions       enable row level security;
 alter table public.clubhouse_articles enable row level security;

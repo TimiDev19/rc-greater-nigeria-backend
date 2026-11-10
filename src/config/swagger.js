@@ -31,6 +31,7 @@ const spec = swaggerJsdoc({
       { name: 'Comments (Admin)', description: 'Moderate comments across projects and bulletins' },
       { name: 'Clubhouse', description: 'Member profiles, articles, comments, reactions, and admin-managed member accounts' },
       { name: 'Make-Up Cards', description: 'Public requests and admin review and PDF generation for visiting Rotarians' },
+      { name: 'Dues Receipts', description: 'Admin-only dues payment receipt records and PDF generation' },
       { name: 'System', description: 'Health and status' },
     ],
     components: {

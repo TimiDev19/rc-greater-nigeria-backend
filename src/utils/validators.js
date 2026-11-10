@@ -36,7 +36,16 @@ const yearServed = () => (value) => {
   return s;
 };
 
+const rotaryYear = () => (value) => {
+  const s = typeof value === 'string' ? value.trim() : '';
+  const match = /^(\d{4})\/(\d{2})$/.exec(s);
+  if (!match || (Number(match[1]) + 1) % 100 !== Number(match[2])) {
+    throw new Error('must be a Rotary year like 2026/27');
+  }
+  return s;
+};
+
 const isUuid = (v) => typeof v === 'string' && UUID_RE.test(v);
 const isVisitorId = (v) => typeof v === 'string' && VISITOR_RE.test(v);
 
-module.exports = { text, date, integer, yearServed, isUuid, isVisitorId };
+module.exports = { text, date, integer, yearServed, rotaryYear, isUuid, isVisitorId };

@@ -24,6 +24,7 @@ router.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.upt
 router.use('/api/auth', require('./auth.routes'));
 router.use('/api/clubhouse', require('./clubhouse.routes'));
 router.use('/api/makeup-requests', require('./makeupRequests.routes'));
+router.use('/api/dues-receipts', require('./duesReceipts.routes'));
 router.use('/api/comments', require('./comments.routes'));
 resources.forEach((cfg) => router.use(cfg.basePath, resourceRouter(cfg)));
 

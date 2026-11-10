@@ -387,6 +387,38 @@ const makeupRequestPaths = () => {
   };
 };
 
+const duesReceiptPaths = () => {
+  const receipt = ref('DuesReceipt');
+  const receiptInput = {
+    type: 'object',
+    required: ['receipt_date', 'rotarian_name', 'amount_paid', 'rotary_year', 'president_name', 'secretary_name'],
+    properties: {
+      receipt_date: { type: 'string', format: 'date', example: '2026-11-10' },
+      rotarian_name: { type: 'string', minLength: 2, maxLength: 160, example: 'Rotarian Adaeze Okonkwo' },
+      amount_paid: { type: 'string', maxLength: 80, example: '₦250,000.00', description: 'Amount text as it should appear on the receipt, including currency if desired' },
+      rotary_year: { type: 'string', pattern: '^\\d{4}/\\d{2}$', example: '2026/27' },
+      president_name: { type: 'string', maxLength: 160 },
+      secretary_name: { type: 'string', maxLength: 160 },
+    },
+  };
+  const receiptUpdateInput = { ...receiptInput };
+  delete receiptUpdateInput.required;
+  return {
+    '/api/dues-receipts': {
+      get: { tags: ['Dues Receipts'], summary: 'List dues receipts (admin)', security: bearer, parameters: [...pageParams(20), { name: 'search', in: 'query', schema: { type: 'string', maxLength: 100 } }, { name: 'rotary_year', in: 'query', schema: { type: 'string', example: '2026/27' } }], responses: { 200: ok('Receipts', envelope({ type: 'array', items: receipt }, { meta: ref('Pagination') })), ...authErrors } },
+      post: { tags: ['Dues Receipts'], summary: 'Create a dues receipt record (admin)', description: 'Send JSON. The receipt date is entered by the admin in YYYY-MM-DD format.', security: bearer, requestBody: { required: true, content: json(receiptInput) }, responses: { 201: ok('Receipt record created', envelope(receipt)), 400: err('Validation failed'), ...authErrors } },
+    },
+    '/api/dues-receipts/{id}': {
+      get: { tags: ['Dues Receipts'], summary: 'Get a dues receipt (admin)', security: bearer, parameters: [idParam], responses: { 200: ok('Receipt', envelope(receipt)), 404: err('Not found'), ...authErrors } },
+      put: { tags: ['Dues Receipts'], summary: 'Update a dues receipt (admin)', description: 'Send only fields to change. The PDF will reflect the updated values when downloaded.', security: bearer, parameters: [idParam], requestBody: { required: true, content: json(receiptUpdateInput) }, responses: { 200: ok('Updated', envelope(receipt)), 400: err('Validation failed or no fields supplied'), 404: err('Not found'), ...authErrors } },
+      delete: { tags: ['Dues Receipts'], summary: 'Delete a dues receipt (admin)', security: bearer, parameters: [idParam], responses: { 200: ok('Deleted', message('Dues receipt deleted successfully')), 404: err('Not found'), ...authErrors } },
+    },
+    '/api/dues-receipts/{id}/pdf': {
+      get: { tags: ['Dues Receipts'], summary: 'Generate and download dues receipt PDF (admin)', security: bearer, parameters: [idParam], responses: { 200: { description: 'Generated dues receipt PDF', content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } } }, 404: err('Receipt not found'), ...authErrors } },
+    },
+  };
+};
+
 const buildDocs = (resources) => {
   const paths = {};
   const schemas = sharedSchemas();
@@ -404,6 +436,12 @@ const buildDocs = (resources) => {
     rejection_note: { type: 'string', nullable: true }, card_available: { type: 'boolean' }, reviewed_at: { type: 'string', format: 'date-time', nullable: true },
     reviewed_by: { type: 'string', format: 'uuid', nullable: true }, created_at: { type: 'string', format: 'date-time' }, updated_at: { type: 'string', format: 'date-time' },
   } };
+  schemas.DuesReceipt = { type: 'object', properties: {
+    id: { type: 'string', format: 'uuid' }, receipt_date: { type: 'string', format: 'date', example: '2026-11-10' },
+    rotarian_name: { type: 'string' }, amount_paid: { type: 'string' }, rotary_year: { type: 'string', example: '2026/27' },
+    president_name: { type: 'string' }, secretary_name: { type: 'string' }, created_by: { type: 'string', format: 'uuid' },
+    created_at: { type: 'string', format: 'date-time' }, updated_at: { type: 'string', format: 'date-time' },
+  } };
 
   resources.forEach((cfg) => {
     schemas[cfg.schemaName] = entitySchema(cfg);
@@ -413,6 +451,7 @@ const buildDocs = (resources) => {
   Object.assign(paths, commentModerationPaths());
   Object.assign(paths, clubhousePaths());
   Object.assign(paths, makeupRequestPaths());
+  Object.assign(paths, duesReceiptPaths());
 
   return { paths, schemas };
 };

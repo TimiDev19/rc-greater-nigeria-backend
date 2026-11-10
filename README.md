@@ -46,6 +46,7 @@ cp .env.example .env        # then fill in the values (see 1.4)
 This creates the tables (`projects`, `bulletins`, `club_officers`, `past_presidents`, `president_messages`, `comments`, `reactions`, clubhouse articles/comments/reactions, and make-up card requests),
 turns on Row Level Security (so the public anon key cannot touch the data directly, only this API can),
 and creates a public storage bucket called `media` for pictures and PDFs plus a private `makeup-cards` bucket for approved make-up card PDFs.
+It also creates the private `dues_receipts` table used by admin-only payment receipts.
 It's safe to run again.
 
 ### 1.3 Create the admin account and start
@@ -232,6 +233,19 @@ Sorted most recent `year_served` first.
 | DELETE | `/api/president-messages/:id` | Admin | |
 
 Sorted newest presidential year first. The `image_url` response field is ready to use in an `<img>`; render `president_name` in bold in the website UI.
+
+### Dues payment receipts (admin only)
+
+| Method | Path | Access | Body / query |
+|---|---|---|---|
+| GET | `/api/dues-receipts` | Admin | `?page &limit &search &rotary_year` |
+| POST | `/api/dues-receipts` | Admin | JSON: `receipt_date` (`YYYY-MM-DD`), `rotarian_name`, `amount_paid`, `rotary_year` (`2026/27`), `president_name`, `secretary_name` |
+| GET | `/api/dues-receipts/:id` | Admin | |
+| PUT | `/api/dues-receipts/:id` | Admin | JSON with any receipt fields to update |
+| DELETE | `/api/dues-receipts/:id` | Admin | |
+| GET | `/api/dues-receipts/:id/pdf` | Admin | Generates and downloads the PDF from the saved record |
+
+Send the date as ISO `YYYY-MM-DD`; the PDF displays it as `DD/MM/YYYY`. `amount_paid` is text so the admin can include the currency and formatting as it should appear (for example `₦250,000.00`). The PDF uses the supplied dues receipt template and prints the president and secretary names above their respective signature lines. Receipts and generated PDFs are private to administrators; PDFs are generated on demand and are not stored as public files.
 
 ### Comments and reactions (projects and bulletins)
 Replace `projects` with `bulletins` for bulletins; the behaviour is identical.
